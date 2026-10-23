@@ -115,6 +115,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BT_TOKEN: ${{ secrets.BT_TOKEN }}
+          # electron-builder 不会向「published_at 超过 2 小时」的既有 Release 上传产物，
+          # 只会打一条 warn 然后静默跳过（退出码仍是 0）。
+          # PrepareRelease 是 edit 旧 Release，published_at 会保留最早那次的时间，
+          # 所以重复发同一版本时必然被拦下，必须用这个开关绕过。
+          EP_GH_IGNORE_TIME: '1'
 
       - name: Verify release assets
         shell: bash
@@ -126,7 +131,8 @@ jobs:
           count=$(gh release view "$tag" --json assets -q '.assets | length')
           echo "Release ${tag} 当前附件数量: ${count}"
           if [ "$count" -lt 4 ]; then
-            echo "::error::Release ${tag} 附件数量异常(${count})，产物未上传成功"
+            echo "::error::Release ${tag} 附件数量异常(${count})，产物未上传成功。"
+            echo "::error::常见原因：electron-builder 因 Release 发布时间超过 2 小时而跳过上传（需 EP_GH_IGNORE_TIME=1），或 token 无权写入该仓库。"
             exit 1
           fi
 
