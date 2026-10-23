@@ -25,7 +25,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          tag="v$(node -p "require('./package.json').version")"
+          tag="v$(node -p 'require("./package.json").version')"
 
           git fetch origin "+refs/tags/${tag}:refs/tags/${tag}" || true
 
@@ -104,14 +104,31 @@ jobs:
           npm run build
 
       - name: Release package
+        shell: bash
         run: |
+          set -euo pipefail
           npm run publish:win:7z:x64
           npm run publish:win:7z:arm64
           npm run publish:win:setup:arm64
           npm run publish:win:setup:x64
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BT_TOKEN: ${{ secrets.BT_TOKEN }}
+
+      - name: Verify release assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="v$(node -p 'require("./package.json").version')"
+          count=$(gh release view "$tag" --json assets -q '.assets | length')
+          echo "Release ${tag} 当前附件数量: ${count}"
+          if [ "$count" -lt 4 ]; then
+            echo "::error::Release ${tag} 附件数量异常(${count})，产物未上传成功"
+            exit 1
+          fi
 
       - name: Generate file MD5
         run: |

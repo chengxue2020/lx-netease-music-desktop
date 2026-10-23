@@ -4,6 +4,14 @@ const builder = require('electron-builder')
 const beforePack = require('./build-before-pack')
 const afterPack = require('./build-after-pack')
 
+// 发布目标仓库，优先级：GH_REPO > GITHUB_REPOSITORY（CI 自动注入，fork 上即为 fork 仓库）> 上游仓库
+// 之前这里写死了 souvenp/lx-netease-music-desktop，导致在 fork 仓库运行时
+// GITHUB_TOKEN 无权写入上游仓库，产物无法上传到当前仓库的 Release。
+const publishTarget = process.env.GH_REPO ||
+  process.env.GITHUB_REPOSITORY ||
+  'souvenp/lx-netease-music-desktop'
+const [publishOwner, publishRepo] = publishTarget.split('/')
+
 /**
 * @type {import('electron-builder').Configuration}
 * @see https://www.electron.build/configuration/configuration
@@ -47,8 +55,8 @@ const options = {
   publish: [
     {
       provider: 'github',
-      owner: 'souvenp',
-      repo: 'lx-netease-music-desktop',
+      owner: publishOwner,
+      repo: publishRepo,
       releaseType: 'release',
     },
   ],
