@@ -543,6 +543,11 @@ declare global {
       'download.skipExistFile': boolean
 
       /**
+       * 忽略扩展名，下载时覆盖同名的其他格式歌曲文件
+       */
+      'download.ignoreFileExt': boolean
+
+      /**
        * 是否下载lrc文件
        */
       'download.isDownloadLrc': boolean

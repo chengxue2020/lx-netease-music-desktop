@@ -109,6 +109,15 @@ export const removeFile = async(path: string) => new Promise<void>((resolve, rej
 
 export const readFile = async(path: string) => fs.promises.readFile(path)
 
+/**
+ * 读取目录下的文件名列表
+ * @param path 目录路径
+ * @returns 文件名列表，读取失败时返回空数组
+ */
+export const readDir = async(path: string): Promise<string[]> => {
+  return fs.promises.readdir(path).catch(() => [])
+}
+
 
 /**
  * 创建 MD5 hash

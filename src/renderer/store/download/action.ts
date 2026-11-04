@@ -14,11 +14,12 @@ import { getMusicUrl, getPicUrl, getLyricInfo, isNeteaseCookieMusicUrl } from '@
 import { appSetting } from '../setting'
 import { qualityList } from '..'
 import { proxyCallback } from '@renderer/worker/utils'
-import { arrPush, arrUnshift, joinPath } from '@renderer/utils'
+import { arrPush, arrUnshift, joinPath, basename, extname, readDir, checkPath, getFileStats, removeFile } from '@renderer/utils'
 import { DOWNLOAD_STATUS } from '@common/constants'
 import { proxy } from '../index'
 import { buildSavePath } from './utils'
 import { showToast } from '@renderer/utils/showToast'
+import { dialog } from '@renderer/plugins/Dialog'
 
 const waitingUpdateTasks = new Map<string, LX.Download.ListItem>()
 let timer: NodeJS.Timeout | null = null
@@ -368,7 +369,164 @@ const handleError = (downloadInfo: LX.Download.ListItem, message?: string) => {
   void checkStartTask()
 }
 
+// 参与「同名文件」判定的音频扩展名，歌词（.lrc/.krc）等非音频文件不参与
+const AUDIO_EXTS = ['.mp3', '.flac', '.wav', '.ape']
+
+/**
+ * 解析歌曲时长字符串（如 "03:55"）为秒数
+ */
+const parseIntervalToSeconds = (interval?: string | null): number => {
+  if (!interval) return 0
+  const parts = interval.split(':').map(part => parseInt(part, 10))
+  if (parts.some(num => Number.isNaN(num))) return 0
+  switch (parts.length) {
+    case 2:
+      return parts[0] * 60 + parts[1]
+    case 3:
+      return parts[0] * 3600 + parts[1] * 60 + parts[2]
+    default:
+      return 0
+  }
+}
+
+/**
+ * 将秒数格式化为「x小时x分x秒」/「x分x秒」/「x秒」
+ */
+const formatDurationText = (seconds: number): string => {
+  const total = Math.max(0, Math.round(seconds))
+  const hours = Math.floor(total / 3600)
+  const minutes = Math.floor((total % 3600) / 60)
+  const secs = total % 60
+  if (hours > 0) return `${hours}小时${minutes}分${secs}秒`
+  if (minutes > 0) return `${minutes}分${secs}秒`
+  return `${secs}秒`
+}
+
+/**
+ * 在保存目录中查找已存在的同一首歌文件
+ * 优先匹配完全同名的文件，其次匹配「文件名相同但扩展名不同」的音频文件（忽略 .lrc 等歌词文件）
+ * @param savePath 保存目录
+ * @param fileName 本次要下载的文件名
+ * @returns 已存在的文件完整路径，不存在时返回空字符串
+ */
+const findExistMusicFile = async(savePath: string, fileName: string): Promise<string> => {
+  const targetPath = joinPath(savePath, fileName)
+  // 1. 完全同名的文件
+  if (await checkPath(targetPath)) return targetPath
+
+  // 2. 文件名相同、扩展名不同的音频文件
+  const targetBaseName = basename(fileName, extname(fileName)).toLowerCase()
+  if (!targetBaseName) return ''
+
+  const files = await readDir(savePath)
+  const matched = files.find(file => {
+    const ext = extname(file).toLowerCase()
+    if (!AUDIO_EXTS.includes(ext)) return false
+    return basename(file, extname(file)).toLowerCase() === targetBaseName
+  })
+  return matched ? joinPath(savePath, matched) : ''
+}
+
+/**
+ * 读取已存在文件的大小、比特率、时长
+ */
+const getExistFileInfo = async(filePath: string, interval?: string | null) => {
+  const stats = await getFileStats(filePath)
+  const size = stats?.size ?? 0
+
+  let bitrate = ''
+  let duration = 0
+  try {
+    const { parseFile } = await import('music-metadata')
+    const metadata = await parseFile(filePath)
+    if (metadata.format.bitrate) bitrate = `${Math.round(metadata.format.bitrate / 1000)}kbps`
+    if (metadata.format.duration) duration = Math.round(metadata.format.duration)
+  } catch (err) {
+    console.log(err)
+  }
+
+  // 读取文件元数据失败时，用扩展名与歌曲信息兜底
+  if (!bitrate) {
+    const ext = extname(filePath).toLowerCase()
+    bitrate = ['.flac', '.wav', '.ape'].includes(ext) ? '无损' : '未知'
+  }
+  if (!duration) duration = parseIntervalToSeconds(interval)
+
+  return { size, bitrate, duration }
+}
+
+// 弹窗串行化，避免多个任务同时触发检查时弹窗叠加
+let existDialogQueue: Promise<unknown> = Promise.resolve()
+const showExistDialog = (message: string): Promise<boolean> => {
+  const result = existDialogQueue.then(async(): Promise<boolean> => {
+    const isContinue = await dialog.confirm({
+      message,
+      confirmButtonText: '下载',
+      cancelButtonText: '不下载',
+    })
+    return isContinue === true
+  })
+  existDialogQueue = result.catch(() => false)
+  return result
+}
+
+// 记录用户已确认继续下载的任务，避免重试时重复弹窗
+const confirmedExistTasks = new Set<string>()
+
+interface ExistCheckResult {
+  isContinue: boolean
+  existFilePath: string
+}
+
+/**
+ * 检查下载目录是否已存在此歌曲，如存在则弹窗让用户决定是否继续下载
+ * @returns isContinue 是否继续下载；existFilePath 已存在的文件路径（供「忽略扩展名」时删除）
+ */
+const checkExistMusicFile = async(downloadInfo: LX.Download.ListItem, savePath: string): Promise<ExistCheckResult> => {
+  if (confirmedExistTasks.has(downloadInfo.id)) return { isContinue: true, existFilePath: '' }
+
+  const existFilePath = await findExistMusicFile(savePath, downloadInfo.metadata.fileName)
+  if (!existFilePath) return { isContinue: true, existFilePath: '' }
+
+  const { size, bitrate, duration } = await getExistFileInfo(existFilePath, downloadInfo.metadata.musicInfo.interval)
+  const message = [
+    `已存在此歌曲，文件名为：${basename(existFilePath)}`,
+    `比特率为：${bitrate}`,
+    `文件大小为：${(size / 1024 / 1024).toFixed(2)}M`,
+    `时长为：${formatDurationText(duration)}`,
+    '是否继续下载？',
+  ].join('\n')
+
+  const isContinue = await showExistDialog(message)
+  if (isContinue) confirmedExistTasks.add(downloadInfo.id)
+  return { isContinue, existFilePath }
+}
+
 const handleStartTask = async(downloadInfo: LX.Download.ListItem) => {
+  const savePath = buildSavePath(downloadInfo)
+  const filePath = joinPath(savePath, downloadInfo.metadata.fileName)
+  if (downloadInfo.metadata.filePath != filePath) updateFilePath(downloadInfo, filePath)
+
+  // 任务开始执行时，检查下载目录是否已存在此歌曲（含同文件名不同扩展名，排除歌词文件）
+  if (downloadInfo.downloaded == 0) {
+    setStatusText(downloadInfo, window.i18n.t('download_status_check_exist'))
+    const { isContinue, existFilePath } = await checkExistMusicFile(downloadInfo, savePath)
+    if (!isContinue) {
+      handleError(downloadInfo, window.i18n.t('download_status_error_check_path_exist'))
+      return
+    }
+    if (downloadInfo.status != DOWNLOAD_STATUS.RUN) return
+
+    // 开启「忽略扩展名」时，覆盖删除同名的其他格式文件；同扩展名的由 worker 覆盖
+    if (appSetting['download.ignoreFileExt'] && existFilePath && existFilePath != filePath) {
+      try {
+        await removeFile(existFilePath)
+      } catch (err) {
+        console.log('删除已存在的同名歌曲文件失败：', err)
+      }
+    }
+  }
+
   if (!downloadInfo.metadata.url) {
     setStatusText(downloadInfo, window.i18n.t('download_status_url_getting'))
     const url = await getUrl(downloadInfo)
@@ -380,13 +538,12 @@ const handleStartTask = async(downloadInfo: LX.Download.ListItem) => {
     if (downloadInfo.status != DOWNLOAD_STATUS.RUN) return
   }
 
-  const savePath = buildSavePath(downloadInfo)
-  const filePath = joinPath(savePath, downloadInfo.metadata.fileName)
-  if (downloadInfo.metadata.filePath != filePath) updateFilePath(downloadInfo, filePath)
-
   setStatusText(downloadInfo, window.i18n.t('download_status_start'))
 
-  await window.lx.worker.download.startTask(toRaw(downloadInfo), savePath, appSetting['download.skipExistFile'], proxyCallback((event: LX.Download.DownloadTaskActions) => {
+  // 用户已确认继续下载时强制覆盖同名文件，否则沿用设置项
+  const skipExistFile = confirmedExistTasks.has(downloadInfo.id) ? false : appSetting['download.skipExistFile']
+
+  await window.lx.worker.download.startTask(toRaw(downloadInfo), savePath, skipExistFile, proxyCallback((event: LX.Download.DownloadTaskActions) => {
     // console.log(event)
     switch (event.action) {
       case 'start':
@@ -486,6 +643,8 @@ export const createDownloadTasks = async(list: LX.Music.MusicInfoOnline[], quali
   }
 
   if (tasks.length) {
+    // 新加入的任务需要重新检查已存在的文件，清除历史确认标记
+    for (const task of tasks) confirmedExistTasks.delete(task.id)
     await addTasks(tasks)
     showToast(`已添加 ${tasks.length} 个下载任务`)
   } else {
@@ -542,6 +701,8 @@ export const removeDownloadTasks = async(ids: string[]) => {
   await downloadTasksRemove(ids)
 
   const idsSet = new Set<string>(ids)
+  // 任务被移除后，清除其「已确认继续下载」标记，重新添加时需重新检查
+  for (const id of idsSet) confirmedExistTasks.delete(id)
   const newList = downloadList.filter(task => {
     if (runingTask.has(task.id)) {
       void window.lx.worker.download.removeTask(task.id)

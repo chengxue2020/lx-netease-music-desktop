@@ -126,6 +126,7 @@ const defaultSetting: LX.AppSetting = {
   'download.fileName': '歌名 - 歌手',
   'download.maxDownloadNum': 3,
   'download.skipExistFile': true,
+  'download.ignoreFileExt': false,
   'download.isDownloadLrc': false,
   'download.isDownloadLxLrc': true,
   'download.isDownloadTLrc': false,
