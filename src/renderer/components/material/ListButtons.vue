@@ -246,7 +246,7 @@ export default {
     line-height: 0;
 
     svg {
-      height: 14px;
+      height: 15px;
     }
   }
 
