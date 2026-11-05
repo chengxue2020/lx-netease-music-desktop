@@ -9,6 +9,8 @@ import { formatMusicName, toOldMusicInfo } from '@renderer/utils/index'
 import { addDislikeInfo, hasDislike } from '@renderer/core/dislikeList'
 import { playNext } from '@renderer/core/player'
 import { playMusicInfo } from '@renderer/store/player/state'
+import { isMusicDownloaded, refreshDownloadedIndex } from '@renderer/store/download/downloadedIndex'
+import { showToast } from '@renderer/utils/showToast'
 
 
 export default ({ props, list, selectedList, removeAllSelect }) => {
@@ -68,11 +70,32 @@ export default ({ props, list, selectedList, removeAllSelect }) => {
     }
   }
 
+  /**
+   * 删除歌单中本地已存在的歌曲（仅从列表移除，不删除本地文件）
+   */
+  const handleRemoveDownloaded = async() => {
+    // 先刷新索引，避免刚进入页面时索引为空导致全部判为未下载
+    await refreshDownloadedIndex()
+    const ids = list.value.filter(item => isMusicDownloaded(item)).map(item => item.id)
+    if (!ids.length) {
+      showToast(t('lists__remove_downloaded_empty'))
+      return
+    }
+    const confirm = await dialog.confirm({
+      message: t('lists__remove_downloaded_tip', { len: ids.length }),
+      confirmButtonText: t('lists__remove_tip_button'),
+    })
+    if (!confirm) return
+    removeListMusics({ listId: props.listId, ids })
+    removeAllSelect()
+  }
+
   return {
     handleSearch,
     handleOpenMusicDetail,
     handleCopyName,
     handleDislikeMusic,
     handleRemoveMusic,
+    handleRemoveDownloaded,
   }
 }

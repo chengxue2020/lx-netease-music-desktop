@@ -243,6 +243,7 @@ export default {
       handleCopyName,
       handleDislikeMusic,
       handleRemoveMusic,
+      handleRemoveDownloaded,
     } = useMusicActions({ props, list, removeAllSelect, selectedList })
 
     const {
@@ -366,6 +367,7 @@ export default {
       handleListRightClick,
       assertApiSupport,
       isMusicDownloaded,
+      handleRemoveDownloaded,
 
       isShowListAdd,
       isMove,

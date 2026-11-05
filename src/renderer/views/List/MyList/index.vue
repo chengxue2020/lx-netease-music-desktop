@@ -3,6 +3,16 @@
     <div :class="$style.listHeader">
       <h2 :class="$style.listsTitle">{{ $t('my_list') }}</h2>
       <div :class="$style.headerBtns">
+        <button
+          :class="$style.removeDownloaded"
+          :aria-label="$t('lists__remove_downloaded_tip_short')"
+          :title="$t('lists__remove_downloaded_tip_short')"
+          @click="$emit('removeDownloaded')"
+        >
+          <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xlink="http://www.w3.org/1999/xlink" height="70%" viewBox="0 0 24 24" space="preserve">
+            <use xlink:href="#icon-close" />
+          </svg>
+        </button>
         <button :class="$style.listsAdd" :aria-label="$t('lists__new_list_btn')" @click="isShowNewList = true">
           <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xlink="http://www.w3.org/1999/xlink" height="70%" viewBox="0 0 24 24" space="preserve">
             <use xlink:href="#icon-list-add" />
@@ -122,7 +132,7 @@ export default {
       required: true,
     },
   },
-  emits: ['show-menu'],
+  emits: ['show-menu', 'removeDownloaded'],
   setup(props, { emit }) {
     const router = useRouter()
     const t = useI18n()
@@ -302,6 +312,28 @@ export default {
   }
   &:hover {
     opacity: .6 !important;
+  }
+}
+
+.removeDownloaded {
+  margin-top: 6px;
+  background: none;
+  height: 30px;
+  border: none;
+  outline: none;
+  border-radius: @radius-border;
+  cursor: pointer;
+  opacity: .45;
+  transition: opacity @transition-normal;
+  color: #e94b5f;
+  svg {
+    vertical-align: bottom;
+  }
+  &:active {
+    opacity: .7;
+  }
+  &:hover {
+    opacity: 1;
   }
 }
 .listsContent {
