@@ -58,6 +58,9 @@
                 <div class="list-item-cell" style="flex: 0 0 18%; padding-left: 0; padding-right: 0;">
                   <material-list-buttons
                     :index="index"
+                    :show-downloaded="true"
+                    :downloaded="isMusicDownloaded(item)"
+                    :music-info="item"
                     :remove-btn="false"
                     :download-btn="assertApiSupport(item.source)"
                     :play-btn="checkApiSource ? assertApiSupport(item.source) : true"
@@ -149,6 +152,7 @@ import { playInfo, playMusicInfo } from '@renderer/store/player/state'
 import { wyLikedSongIds } from '@renderer/store/user/state'
 import { toggleWyLike } from '@renderer/store/user/action'
 import { showToast } from '@renderer/utils/showToast'
+import { isMusicDownloaded, refreshDownloadedIndex } from '@renderer/store/download/downloadedIndex'
 export default {
   name: 'MaterialOnlineList',
   props: {
@@ -195,6 +199,10 @@ export default {
   setup(props, { emit }) {
     const actionButtonsVisible = true
     const router = useRouter()
+
+    // 进入列表时重建「已下载」索引
+    void refreshDownloadedIndex()
+
     const rightClickSelectedIndex = ref(-1)
     const dom_listContent = ref(null)
     const listRef = ref(null)
@@ -369,6 +377,7 @@ export default {
 
       handleListRightClick,
       assertApiSupport,
+      isMusicDownloaded,
 
       isShowListAdd,
       isShowListAddMultiple,

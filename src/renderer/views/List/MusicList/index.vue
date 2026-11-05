@@ -61,7 +61,7 @@
           <div class="list-item-cell" style="flex: 0 0 20%;"><span class="select" :aria-label="item.meta.albumName">{{ item.meta.albumName }}</span></div>
           <div class="list-item-cell" style="flex: 0 0 8%;"><span class="no-select">{{ item.interval || '--/--' }}</span></div>
           <div class="list-item-cell" style="flex: 0 0 18%; padding-left: 0; padding-right: 0;">
-            <material-list-buttons :index="index" :download-btn="assertApiSupport(item.source) && item.source != 'local'" @btn-click="handleListBtnClick" />
+            <material-list-buttons :index="index" :show-downloaded="true" :downloaded="isMusicDownloaded(item)" :music-info="item" :download-btn="assertApiSupport(item.source) && item.source != 'local'" @btn-click="handleListBtnClick" />
           </div>
         </div>
       </base-virtualized-list>
@@ -145,6 +145,7 @@ import useSearch from './useSearch'
 import useListScroll from './useListScroll'
 import useMusicToggle from './useMusicToggle'
 import { useRouter } from '@common/utils/vueRouter'
+import { isMusicDownloaded, refreshDownloadedIndex } from '@renderer/store/download/downloadedIndex'
 export default {
   name: 'MusicList',
   components: {
@@ -162,6 +163,9 @@ export default {
   setup(props, { emit }) {
     const router = useRouter()
     const actionButtonsVisible = true
+
+    // 进入列表时重建「已下载」索引
+    void refreshDownloadedIndex()
 
     let scrollIndex = null
     let isAnimation = false
@@ -361,6 +365,7 @@ export default {
 
       handleListRightClick,
       assertApiSupport,
+      isMusicDownloaded,
 
       isShowListAdd,
       isMove,

@@ -14,12 +14,13 @@ import { getMusicUrl, getPicUrl, getLyricInfo, isNeteaseCookieMusicUrl } from '@
 import { appSetting } from '../setting'
 import { qualityList } from '..'
 import { proxyCallback } from '@renderer/worker/utils'
-import { arrPush, arrUnshift, joinPath, basename, extname, readDir, checkPath, getFileStats, removeFile } from '@renderer/utils'
+import { arrPush, arrUnshift, joinPath, basename, extname, readDir, checkPath, getFileStats, removeFile, formatDurationText } from '@renderer/utils'
 import { DOWNLOAD_STATUS } from '@common/constants'
 import { proxy } from '../index'
 import { buildSavePath } from './utils'
 import { showToast } from '@renderer/utils/showToast'
 import { dialog } from '@renderer/plugins/Dialog'
+import { refreshDownloadedIndexThrottle } from './downloadedIndex'
 
 const waitingUpdateTasks = new Map<string, LX.Download.ListItem>()
 let timer: NodeJS.Timeout | null = null
@@ -390,19 +391,6 @@ const parseIntervalToSeconds = (interval?: string | null): number => {
 }
 
 /**
- * 将秒数格式化为「x小时x分x秒」/「x分x秒」/「x秒」
- */
-const formatDurationText = (seconds: number): string => {
-  const total = Math.max(0, Math.round(seconds))
-  const hours = Math.floor(total / 3600)
-  const minutes = Math.floor((total % 3600) / 60)
-  const secs = total % 60
-  if (hours > 0) return `${hours}小时${minutes}分${secs}秒`
-  if (minutes > 0) return `${minutes}分${secs}秒`
-  return `${secs}秒`
-}
-
-/**
  * 在保存目录中查找已存在的同一首歌文件
  * 优先匹配完全同名的文件，其次匹配「文件名相同但扩展名不同」的音频文件（忽略 .lrc 等歌词文件）
  * @param savePath 保存目录
@@ -556,6 +544,8 @@ const handleStartTask = async(downloadInfo: LX.Download.ListItem) => {
         void window.lx.worker.download.removeTask(downloadInfo.id)
         runingTask.delete(downloadInfo.id)
         setStatus(downloadInfo, DOWNLOAD_STATUS.COMPLETED)
+        // 更新列表的「已下载」标志
+        refreshDownloadedIndexThrottle()
         void checkStartTask()
         break
       case 'refreshUrl':

@@ -70,6 +70,19 @@ export const formatPlayTime2 = (time: number) => {
   return numFix(m) + ':' + numFix(s)
 }
 
+/**
+ * 将秒数格式化为「x小时x分x秒」/「x分x秒」/「x秒」
+ */
+export const formatDurationText = (seconds: number): string => {
+  const total = Math.max(0, Math.round(seconds))
+  const hours = Math.floor(total / 3600)
+  const minutes = Math.floor((total % 3600) / 60)
+  const secs = total % 60
+  if (hours > 0) return `${hours}小时${minutes}分${secs}秒`
+  if (minutes > 0) return `${minutes}分${secs}秒`
+  return `${secs}秒`
+}
+
 
 export const isUrl = (path: string) => /https?:\/\//.test(path)
 
