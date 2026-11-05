@@ -315,6 +315,7 @@ export default {
   }
 }
 
+// 与「新建列表」按钮保持一致，便于单独调整
 .removeDownloaded {
   margin-top: 6px;
   background: none;
@@ -323,17 +324,17 @@ export default {
   outline: none;
   border-radius: @radius-border;
   cursor: pointer;
-  opacity: .45;
+  opacity: .1;
   transition: opacity @transition-normal;
-  color: #e94b5f;
+  color: var(--color-button-font);
   svg {
     vertical-align: bottom;
   }
   &:active {
-    opacity: .7;
+    opacity: .7 !important;
   }
   &:hover {
-    opacity: 1;
+    opacity: .6 !important;
   }
 }
 .listsContent {
