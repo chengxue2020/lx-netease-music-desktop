@@ -26,6 +26,26 @@ export const downloadedFiles = shallowRef<Map<string, string>>(new Map())
 // 文件信息缓存，避免重复读取
 const fileInfoCache = new Map<string, DownloadedFileInfo>()
 
+/**
+ * 索引版本号，每次索引或文件信息缓存发生变化时递增
+ * 用于让已展示过提示的组件丢弃旧信息
+ */
+export const indexVersion = shallowRef(0)
+
+const bumpVersion = () => {
+  indexVersion.value++
+}
+
+/**
+ * 使已下载文件的信息缓存失效
+ * @param filePath 指定文件路径；不传则清空全部缓存
+ */
+export const invalidateDownloadedFileInfo = (filePath?: string) => {
+  if (filePath) fileInfoCache.delete(filePath)
+  else fileInfoCache.clear()
+  bumpVersion()
+}
+
 let isRefreshing = false
 let isPending = false
 
@@ -49,6 +69,7 @@ export const refreshDownloadedIndex = async() => {
     }
     downloadedFiles.value = map
     fileInfoCache.clear()
+    bumpVersion()
   } finally {
     isRefreshing = false
     if (isPending) {

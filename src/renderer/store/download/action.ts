@@ -20,7 +20,7 @@ import { proxy } from '../index'
 import { buildSavePath } from './utils'
 import { showToast } from '@renderer/utils/showToast'
 import { dialog } from '@renderer/plugins/Dialog'
-import { refreshDownloadedIndexThrottle } from './downloadedIndex'
+import { refreshDownloadedIndexThrottle, invalidateDownloadedFileInfo } from './downloadedIndex'
 
 const waitingUpdateTasks = new Map<string, LX.Download.ListItem>()
 let timer: NodeJS.Timeout | null = null
@@ -544,7 +544,8 @@ const handleStartTask = async(downloadInfo: LX.Download.ListItem) => {
         void window.lx.worker.download.removeTask(downloadInfo.id)
         runingTask.delete(downloadInfo.id)
         setStatus(downloadInfo, DOWNLOAD_STATUS.COMPLETED)
-        // 更新列表的「已下载」标志
+        // 更新列表的「已下载」标志，并让旧的文件信息缓存失效
+        invalidateDownloadedFileInfo()
         refreshDownloadedIndexThrottle()
         void checkStartTask()
         break

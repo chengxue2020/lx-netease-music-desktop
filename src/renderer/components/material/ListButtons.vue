@@ -78,7 +78,7 @@
 </template>
 
 <script>
-import { getDownloadedFileInfo } from '@renderer/store/download/downloadedIndex'
+import { getDownloadedFileInfo, indexVersion } from '@renderer/store/download/downloadedIndex'
 
 export default {
   props: {
@@ -147,6 +147,7 @@ export default {
       tipInfo: null,
       tipStyle: {},
       tipMusicId: null,
+      tipVersion: -1,
     }
   },
   methods: {
@@ -163,9 +164,11 @@ export default {
         : { left: `${rect.right}px`, top: `${rect.top - 8}px`, transform: 'translate(-100%, -100%)' }
       this.tipVisible = true
 
-      // 同一首歌且已取到信息时直接复用，否则重新读取
-      if (this.tipMusicId === this.musicInfo.id && this.tipInfo) return
+      // 同一首歌、已有信息且索引未变更时直接复用，否则重新读取
+      const version = indexVersion.value
+      if (this.tipMusicId === this.musicInfo.id && this.tipInfo && this.tipVersion === version) return
       this.tipMusicId = this.musicInfo.id
+      this.tipVersion = version
       this.tipInfo = null
       void this.loadTipInfo()
     },
@@ -204,7 +207,7 @@ export default {
 }
 
 .tipNotice {
-  color: var(--color-font-label);
+  color: #e94b5f;
   font-size: 11px;
   line-height: 1.5;
   margin-bottom: 4px;
