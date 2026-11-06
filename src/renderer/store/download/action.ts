@@ -611,6 +611,21 @@ const filterTask = (list: LX.Download.ListItem[]) => {
   })
 }
 /**
+ * 重置任务，以便重新下载
+ * @param task 下载任务
+ */
+const resetTaskForRedownload = (task: LX.Download.ListItem) => {
+  task.downloaded = 0
+  task.total = 0
+  task.progress = 0
+  task.speed = ''
+  task.writeQueue = 0
+  task.isComplate = false
+  task.metadata.url = null
+  setStatus(task, DOWNLOAD_STATUS.WAITING)
+}
+
+/**
  * 创建下载任务
  * @param list 要下载的歌曲
  * @param quality 下载音质
@@ -620,12 +635,12 @@ export const createDownloadTasks = async(list: LX.Music.MusicInfoOnline[], quali
     showToast('没有可添加的下载歌曲')
     return
   }
-  let tasks: LX.Download.ListItem[] = []
+  let allTasks: LX.Download.ListItem[] = []
   try {
     const safeList = list.map(musicInfo => cloneMusicInfoForDownload(musicInfo))
-    tasks = filterTask(await window.lx.worker.download.createDownloadTasks(safeList, quality,
+    allTasks = await window.lx.worker.download.createDownloadTasks(safeList, quality,
       appSetting['download.fileName'],
-      toRaw(qualityList.value), listId),
+      toRaw(qualityList.value), listId,
     )
   } catch (err: any) {
     console.log(err)
@@ -633,13 +648,54 @@ export const createDownloadTasks = async(list: LX.Music.MusicInfoOnline[], quali
     return
   }
 
+  const tasks = filterTask(allTasks)
+  const newTaskIds = new Set(tasks.map(task => task.id))
+  // 已在下载列表中的任务
+  const existTasks = downloadList.filter(task => !newTaskIds.has(task.id) && allTasks.some(t => t.id === task.id))
+  // 其中尚未完成的任务（下载中 / 排队中 / 已暂停 / 失败）
+  const pendingTasks = existTasks.filter(task => !task.isComplate)
+  const hasFailedTask = pendingTasks.some(task => task.status == DOWNLOAD_STATUS.ERROR)
+  const hasDownloadingTask = pendingTasks.some(task => task.status != DOWNLOAD_STATUS.ERROR)
+
+  // 目标音质不可用时会被降级为实际可用音质，标记出来用于提示与强制覆盖
+  const hasDegraded = allTasks.some(task => task.metadata.quality != quality)
+
   if (tasks.length) {
     // 新加入的任务需要重新检查已存在的文件，清除历史确认标记
     for (const task of tasks) confirmedExistTasks.delete(task.id)
     await addTasks(tasks)
+  }
+
+  // 重置需要重新下载的任务：
+  // 1. 已完成但文件已被手动删除
+  // 2. 本次目标音质被降级（即使旧文件还在，也用降级后的音质覆盖）
+  const reDownloadTasks: LX.Download.ListItem[] = []
+  for (const task of existTasks) {
+    if (!task.isComplate) continue
+    if (task.metadata.quality == quality) {
+      const filePath = task.metadata.filePath || joinPath(buildSavePath(task), task.metadata.fileName)
+      if (await checkPath(filePath)) continue
+    }
+    reDownloadTasks.push(task)
+  }
+  for (const task of reDownloadTasks) {
+    // 用户已通过选择音质确认要下载，不再弹「文件已存在」确认框
+    confirmedExistTasks.add(task.id)
+    resetTaskForRedownload(task)
+  }
+
+  if (hasDegraded) {
+    showToast('无此音质，自动下载降级音质')
+  } else if (reDownloadTasks.length) {
+    showToast(`已重新添加 ${reDownloadTasks.length} 个下载任务`)
+  } else if (tasks.length) {
     showToast(`已添加 ${tasks.length} 个下载任务`)
+  } else if (hasFailedTask) {
+    showToast('任务已存在，但下载失败')
+  } else if (hasDownloadingTask) {
+    showToast('任务已存在，正在下载')
   } else {
-    showToast('下载任务已存在')
+    showToast('要下载歌曲文件已存在')
   }
   void checkStartTask()
 }
