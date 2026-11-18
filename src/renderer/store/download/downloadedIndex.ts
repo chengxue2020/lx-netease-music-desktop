@@ -1,4 +1,4 @@
-import { shallowRef } from '@common/utils/vueTools'
+import { shallowRef, watch } from '@common/utils/vueTools'
 import { readDir, basename, extname, joinPath, getFileStats } from '@renderer/utils'
 import { filterFileName, formatDurationText } from '@common/utils/common'
 import { clipFileNameLength, clipNameLength, formatMusicName } from '@common/utils/tools'
@@ -168,3 +168,9 @@ export const getDownloadedFileInfo = async(musicInfo: LX.Music.MusicInfo): Promi
   fileInfoCache.set(filePath, info)
   return info
 }
+
+// 下载目录变化后重建索引，避免继续使用旧目录的文件列表
+watch(() => appSetting['download.savePath'], () => {
+  void refreshDownloadedIndex()
+})
+

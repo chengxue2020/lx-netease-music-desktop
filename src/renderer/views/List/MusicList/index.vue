@@ -145,6 +145,7 @@ import useSearch from './useSearch'
 import useListScroll from './useListScroll'
 import useMusicToggle from './useMusicToggle'
 import { useRouter } from '@common/utils/vueRouter'
+import { watch } from '@common/utils/vueTools'
 import { isMusicDownloaded, refreshDownloadedIndex } from '@renderer/store/download/downloadedIndex'
 export default {
   name: 'MusicList',
@@ -164,8 +165,10 @@ export default {
     const router = useRouter()
     const actionButtonsVisible = true
 
-    // 进入列表时重建「已下载」索引
-    void refreshDownloadedIndex()
+    // 进入列表或切换歌单时重建「已下载」索引
+    watch(() => props.listId, () => {
+      void refreshDownloadedIndex()
+    }, { immediate: true })
 
     let scrollIndex = null
     let isAnimation = false
