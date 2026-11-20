@@ -155,7 +155,7 @@
   "lists__add_local_file_desc": "選取歌曲檔案",
   "lists__dislike_music_singer_tip": "你真的不喜歡「{singer}」的「{name}」嗎？",
   "lists__dislike_music_tip": "你真的不喜歡「{name}」嗎？",
-  "lists__duplicate": "重複歌曲",
+  "lists__duplicate": "尋找重複歌曲",
   "lists__dedupe": "歌曲去重",
   "lists__dedupe_tip": "歌名和歌手相同的歌曲視為同一首，將移除 {len} 首重複歌曲（每首僅保留時長最長的一首），是否繼續？",
   "lists__dedupe_empty": "歌單中沒有重複的歌曲",

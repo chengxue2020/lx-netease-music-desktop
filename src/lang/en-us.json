@@ -155,7 +155,7 @@
   "lists__add_local_file_desc": "Choose song file",
   "lists__dislike_music_singer_tip": "Do you really dislike {singer}'s \"{name}\"?",
   "lists__dislike_music_tip": "Do you really dislike \"{name}\"?",
-  "lists__duplicate": "Duplicate Songs",
+  "lists__duplicate": "Find Duplicate Songs",
   "lists__dedupe": "Remove Duplicate Songs",
   "lists__dedupe_tip": "Songs with the same name and artist are treated as one. {len} duplicate songs will be removed (only the longest of each is kept). Continue?",
   "lists__dedupe_empty": "No duplicate songs in this list",
