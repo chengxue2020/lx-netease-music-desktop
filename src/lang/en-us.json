@@ -157,7 +157,7 @@
   "lists__dislike_music_tip": "Do you really dislike \"{name}\"?",
   "lists__duplicate": "Duplicate Songs",
   "lists__dedupe": "Remove Duplicate Songs",
-  "lists__dedupe_tip": "Songs with the same name and artist are treated as one. {len} duplicate songs will be removed (only the first of each is kept). Continue?",
+  "lists__dedupe_tip": "Songs with the same name and artist are treated as one. {len} duplicate songs will be removed (only the longest of each is kept). Continue?",
   "lists__dedupe_empty": "No duplicate songs in this list",
   "lists__dedupe_done": "Removed {len} duplicate songs",
   "lists__export": "Export",
