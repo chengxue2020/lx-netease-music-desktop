@@ -9,6 +9,7 @@ export default ({
 
   handleRename,
   handleDuplicateList,
+  handleDedupe,
   handleSortList,
   handleOpenSourceDetailPage,
   handleImportList,
@@ -19,6 +20,7 @@ export default ({
   const menuControl = reactive({
     rename: true,
     duplicate: true,
+    dedupe: true,
     sort: true,
     local_file: true,
     sourceDetail: true,
@@ -42,6 +44,11 @@ export default ({
         name: t('lists__sort_list'),
         action: 'sort',
         disabled: !menuControl.sort,
+      },
+      {
+        name: t('lists__dedupe'),
+        action: 'dedupe',
+        disabled: !menuControl.dedupe,
       },
       {
         name: t('lists__duplicate'),
@@ -160,6 +167,9 @@ export default ({
         break
       case 'sort':
         handleSortList(listInfo)
+        break
+      case 'dedupe':
+        handleDedupe(listInfo)
         break
       case 'local_file':
         addLocalFile(listInfo)

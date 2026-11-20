@@ -118,6 +118,7 @@ import useDarg from './useDarg'
 import useEditList from './useEditList'
 import useListScroll from './useListScroll'
 import useDuplicate from './useDuplicate'
+import useDedupe from './useDedupe'
 
 export default {
   name: 'MyLists',
@@ -144,6 +145,7 @@ export default {
     const { isShowListUpdateModal, handleUpdateSourceList } = useListUpdate()
     const { isShowListSortModal, sortListInfo, handleSortList } = useSort()
     const { isShowDuplicateMusicModal, duplicateListInfo, handleDuplicateList } = useDuplicate()
+    const { handleDedupe } = useDedupe()
     const { handleRename, handleSaveListName, isShowNewList, isNewListLeave, handleCreateList } = useEditList({ dom_lists_list })
     useListScroll({ dom_lists_list })
 
@@ -189,6 +191,7 @@ export default {
       handleOpenSourceDetailPage,
       handleSortList,
       handleDuplicateList,
+      handleDedupe,
       handleRename,
       handleRemove,
     })
