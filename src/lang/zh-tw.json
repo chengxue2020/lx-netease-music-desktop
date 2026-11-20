@@ -119,6 +119,7 @@
   "list__rename": "重新命名",
   "list__search": "搜尋",
   "list__sort": "調整位置",
+  "list__sort_by_add_time": "依加入時間排序（升序/降序）",
   "list__source_detail": "歌曲詳情頁",
   "list__start": "開始任務",
   "list__sync": "更新",

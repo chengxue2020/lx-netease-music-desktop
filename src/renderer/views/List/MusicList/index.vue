@@ -4,19 +4,35 @@
       <table>
         <thead>
           <tr v-if="actionButtonsVisible">
-            <th class="num" style="width: 5%;">#</th>
-            <th class="nobreak">{{ $t('music_name') }}</th>
-            <th class="nobreak" style="width: 20%;">{{ $t('music_singer') }}</th>
+            <th class="num" style="width: 5%;">
+              <span :class="$style.sortHead" :title="$t('list__sort_by_add_time')" @click="handleSort('addTime')">#<svg v-if="sortField === 'addTime'" :class="[$style.sortArrow, { [$style.sortArrowDesc]: sortOrder === 'desc' }]" viewBox="0 0 24 24"><use xlink:href="#icon-sort-arrow" /></svg></span>
+            </th>
+            <th class="nobreak">
+              <span :class="$style.sortHead" @click="handleSort('name')">{{ $t('music_name') }}<svg v-if="sortField === 'name'" :class="[$style.sortArrow, { [$style.sortArrowDesc]: sortOrder === 'desc' }]" viewBox="0 0 24 24"><use xlink:href="#icon-sort-arrow" /></svg></span>
+            </th>
+            <th class="nobreak" style="width: 20%;">
+              <span :class="$style.sortHead" @click="handleSort('singer')">{{ $t('music_singer') }}<svg v-if="sortField === 'singer'" :class="[$style.sortArrow, { [$style.sortArrowDesc]: sortOrder === 'desc' }]" viewBox="0 0 24 24"><use xlink:href="#icon-sort-arrow" /></svg></span>
+            </th>
             <th class="nobreak" style="width: 20%;">{{ $t('music_album') }}</th>
-            <th class="nobreak" style="width: 8%;">{{ $t('music_time') }}</th>
+            <th class="nobreak" style="width: 8%;">
+              <span :class="$style.sortHead" @click="handleSort('interval')">{{ $t('music_time') }}<svg v-if="sortField === 'interval'" :class="[$style.sortArrow, { [$style.sortArrowDesc]: sortOrder === 'desc' }]" viewBox="0 0 24 24"><use xlink:href="#icon-sort-arrow" /></svg></span>
+            </th>
             <th class="nobreak" style="width: 18%;">{{ $t('action') }}</th>
           </tr>
           <tr v-else>
-            <th class="num" style="width: 5%;">#</th>
-            <th class="nobreak">{{ $t('music_name') }}</th>
-            <th class="nobreak" style="width: 23%;">{{ $t('music_singer') }}</th>
+            <th class="num" style="width: 5%;">
+              <span :class="$style.sortHead" :title="$t('list__sort_by_add_time')" @click="handleSort('addTime')">#<svg v-if="sortField === 'addTime'" :class="[$style.sortArrow, { [$style.sortArrowDesc]: sortOrder === 'desc' }]" viewBox="0 0 24 24"><use xlink:href="#icon-sort-arrow" /></svg></span>
+            </th>
+            <th class="nobreak">
+              <span :class="$style.sortHead" @click="handleSort('name')">{{ $t('music_name') }}<svg v-if="sortField === 'name'" :class="[$style.sortArrow, { [$style.sortArrowDesc]: sortOrder === 'desc' }]" viewBox="0 0 24 24"><use xlink:href="#icon-sort-arrow" /></svg></span>
+            </th>
+            <th class="nobreak" style="width: 23%;">
+              <span :class="$style.sortHead" @click="handleSort('singer')">{{ $t('music_singer') }}<svg v-if="sortField === 'singer'" :class="[$style.sortArrow, { [$style.sortArrowDesc]: sortOrder === 'desc' }]" viewBox="0 0 24 24"><use xlink:href="#icon-sort-arrow" /></svg></span>
+            </th>
             <th class="nobreak" style="width: 26%;">{{ $t('music_album') }}</th>
-            <th class="nobreak" style="width: 10%;">{{ $t('music_time') }}</th>
+            <th class="nobreak" style="width: 10%;">
+              <span :class="$style.sortHead" @click="handleSort('interval')">{{ $t('music_time') }}<svg v-if="sortField === 'interval'" :class="[$style.sortArrow, { [$style.sortArrowDesc]: sortOrder === 'desc' }]" viewBox="0 0 24 24"><use xlink:href="#icon-sort-arrow" /></svg></span>
+            </th>
           </tr>
         </thead>
       </table>
@@ -140,6 +156,7 @@ import usePlay from './usePlay'
 import useMusicDownload from './useMusicDownload'
 import useMusicAdd from './useMusicAdd'
 import useSort from './useSort'
+import useTableSort from './useTableSort'
 import useMusicActions from './useMusicActions'
 import useSearch from './useSearch'
 import useListScroll from './useListScroll'
@@ -232,6 +249,12 @@ export default {
       handleShowSortModal,
       sortMusic,
     } = useSort({ props, list, selectedList, removeAllSelect })
+
+    const {
+      sortField,
+      sortOrder,
+      handleSort,
+    } = useTableSort({ props, list })
 
     const {
       handleShowMusicToggleModal,
@@ -383,6 +406,10 @@ export default {
       selectedSortMusicInfo,
       sortMusic,
 
+      sortField,
+      sortOrder,
+      handleSort,
+
       isShowDownload,
       isShowDownloadMultiple,
       selectedDownloadMusicInfo,
@@ -470,6 +497,23 @@ export default {
 .linkSep {
   margin: 0;
   color: var(--color-font-label);
+}
+.sortHead {
+  cursor: pointer;
+  user-select: none;
+  &:hover {
+    color: var(--color-primary-font-active);
+  }
+}
+.sortArrow {
+  width: 12px;
+  height: 12px;
+  margin-left: 2px;
+  vertical-align: middle;
+  transition: transform @transition-normal;
+}
+.sortArrowDesc {
+  transform: rotate(180deg);
 }
 .alias {
   color: var(--color-font-label);

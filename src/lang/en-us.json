@@ -119,6 +119,7 @@
   "list__rename": "Rename",
   "list__search": "Search",
   "list__sort": "Adjust Position",
+  "list__sort_by_add_time": "Sort by date added (ascending/descending)",
   "list__source_detail": "Song Detail",
   "list__start": "Resume",
   "list__sync": "Update",
