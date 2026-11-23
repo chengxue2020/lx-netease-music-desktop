@@ -59,6 +59,7 @@ export default ({ props, list, selectedList, removeAllSelect }) => {
       ? dialog.confirm({
         message: t('lists__remove_music_tip', { len: selectedList.value.length }),
         confirmButtonText: t('lists__remove_tip_button'),
+        focusConfirm: true,
       })
       : Promise.resolve(true)
     )

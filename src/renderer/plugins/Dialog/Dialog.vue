@@ -3,7 +3,7 @@
     <main class="scroll" :class="[$style.main, { 'select': selection }]">{{ message }}</main>
     <footer :class="$style.footer">
       <Btn v-if="showCancel" :class="$style.btn" @click="handleCancel">{{ cancelBtnText }}</Btn>
-      <Btn :class="$style.btn" @click="handleComfirm">{{ confirmBtnText }}</Btn>
+      <Btn ref="confirmBtn" :class="$style.btn" @click="handleComfirm">{{ confirmBtnText }}</Btn>
     </footer>
   </Modal>
 </template>
@@ -47,7 +47,20 @@ export default {
       confirmButtonText: '',
       teleport: '#root',
       selection: false,
+      focusConfirm: false,
     }
+  },
+  watch: {
+    visible(val) {
+      if (!val || !this.focusConfirm) return
+      // Modal 内容经 teleport + transition 渲染，需等 DOM 就绪后再聚焦确定按钮
+      void this.$nextTick(() => {
+        void this.$nextTick(() => {
+          const btn = this.$refs.confirmBtn?.$el
+          if (btn && typeof btn.focus == 'function') btn.focus()
+        })
+      })
+    },
   },
   computed: {
     cancelBtnText() {
