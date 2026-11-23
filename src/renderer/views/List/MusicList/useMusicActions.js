@@ -1,3 +1,4 @@
+import { onBeforeUnmount } from '@common/utils/vueTools'
 import { useRouter } from '@common/utils/vueRouter'
 import musicSdk from '@renderer/utils/musicSdk'
 import { openUrl, clipboardWriteText } from '@common/utils/electron'
@@ -53,22 +54,39 @@ export default ({ props, list, selectedList, removeAllSelect }) => {
     }
   }
 
+  const removeSelectedMusics = async() => {
+    const confirm = await (selectedList.value.length > 1
+      ? dialog.confirm({
+        message: t('lists__remove_music_tip', { len: selectedList.value.length }),
+        confirmButtonText: t('lists__remove_tip_button'),
+      })
+      : Promise.resolve(true)
+    )
+    if (!confirm) return
+    removeListMusics({ listId: props.listId, ids: selectedList.value.map(m => m.id) })
+    removeAllSelect()
+  }
+
   const handleRemoveMusic = async(index, single) => {
     if (selectedList.value.length && !single) {
-      const confirm = await (selectedList.value.length > 1
-        ? dialog.confirm({
-          message: t('lists__remove_music_tip', { len: selectedList.value.length }),
-          confirmButtonText: t('lists__remove_tip_button'),
-        })
-        : Promise.resolve(true)
-      )
-      if (!confirm) return
-      removeListMusics({ listId: props.listId, ids: selectedList.value.map(m => m.id) })
-      removeAllSelect()
+      await removeSelectedMusics()
     } else {
       removeListMusics({ listId: props.listId, ids: [list.value[index].id] })
     }
   }
+
+  // Delete 键删除选中的歌曲（单选或多选）
+  // 输入框内按键已被键盘系统拦截（isEditing），不会广播 key_delete_down，无需再做焦点判断
+  const handle_key_delete_down = ({ event }) => {
+    if (!selectedList.value.length) return
+    event.preventDefault()
+    if (event.repeat) return
+    void removeSelectedMusics()
+  }
+  onBeforeUnmount(() => {
+    window.key_event.off('key_delete_down', handle_key_delete_down)
+  })
+  window.key_event.on('key_delete_down', handle_key_delete_down)
 
   /**
    * 删除歌单中本地已存在的歌曲（仅从列表移除，不删除本地文件）
